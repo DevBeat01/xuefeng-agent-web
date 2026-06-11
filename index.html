@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雪峰 Agent — AI 高考志愿顾问</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --border: #e5e5ea;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --accent-light: #e8f2ff;
+      --green: #34c759;
+      --orange: #ff9500;
+      --red: #ff3b30;
+      --user-bubble: #0071e3;
+      --user-text: #ffffff;
+      --bot-bubble: #ffffff;
+      --bot-text: #1d1d1f;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.1);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      /* dynamic viewport height for mobile */
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input,
+    textarea,
+    button {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* ── Layout ─────────────────────────── */
+    .app {
+      display: flex;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* ── Sidebar ────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-header h1 .icon {
+      font-size: 24px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .sidebar-section {
+      padding: 16px 20px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .sidebar-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .slot-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .slot-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .slot-dot.filled {
+      background: var(--green);
+    }
+
+    .slot-label {
+      color: var(--text-secondary);
+      min-width: 60px;
+    }
+
+    .slot-value {
+      color: var(--text);
+      font-weight: 500;
+      flex: 1;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-reset {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-reset:hover {
+      background: #f0f0f0;
+      border-color: #ccc;
+    }
+
+    /* ── Chat Area ──────────────────────── */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .status-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .status-inline .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px;
+      color: var(--text);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .welcome .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .welcome h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .welcome p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 400px;
+      line-height: 1.6;
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+      justify-content: center;
+    }
+
+    .quick-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--card);
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ── Messages ───────────────────────── */
+    .msg {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .msg.user {
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .msg.bot .msg-avatar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .msg.user .msg-avatar {
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .msg-content {
+      max-width: 70%;
+      min-width: 60px;
+    }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      line-height: 1.7;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg.bot .msg-bubble {
+      background: var(--bot-bubble);
+      color: var(--bot-text);
+      box-shadow: var(--shadow);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--user-bubble);
+      color: var(--user-text);
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .msg.user .msg-time {
+      text-align: right;
+    }
+
+    /* Thinking indicator */
+    .thinking {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .thinking-dots {
+      display: inline-flex;
+      gap: 2px;
+      margin-left: 2px;
+    }
+
+    .thinking-dots span {
+      animation: thinkingBounce 1.4s infinite;
+      opacity: 0.3;
+    }
+
+    .thinking-dots span:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .thinking-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .thinking-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes thinkingBounce {
+
+      0%,
+      60%,
+      100% {
+        opacity: 0.3;
+        transform: translateY(0);
+      }
+
+      30% {
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+    }
+
+    /* ── Input Area ─────────────────────── */
+    .input-area {
+      padding: 16px 24px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .input-box {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-box textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-family: var(--font);
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      max-height: 120px;
+      min-height: 44px;
+      line-height: 1.5;
+      background: var(--bg);
+    }
+
+    .input-box textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+    }
+
+    .input-box textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .btn-send {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: #0062cc;
+      transform: scale(1.05);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .input-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ── Search indicator ───────────────── */
+    .search-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #fff3cd;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #856404;
+      margin-bottom: 8px;
+    }
+
+    .search-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid #856404;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Mobile ─────────────────────────── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 99;
+    }
+
+    @media (max-width: 768px) {
+
+      /* Sidebar: overlay drawer */
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+        transform: translateX(-100%);
+        width: 280px;
+        box-shadow: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .sidebar-overlay.open {
+        display: block;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      /* Chat header */
+      .chat-header {
+        padding: 12px 16px;
+        gap: 8px;
+        position: relative;
+      }
+
+      .header-left {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        align-items: center;
+      }
+
+      .chat-header h2 {
+        font-size: 15px;
+      }
+
+      .status-inline {
+        font-size: 11px;
+      }
+
+      /* Messages */
+      .messages {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .msg {
+        margin-bottom: 14px;
+      }
+
+      .msg-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      .msg-content {
+        max-width: 88%;
+      }
+
+      .msg-bubble {
+        padding: 10px 14px;
+        font-size: 14px;
+        line-height: 1.65;
+        border-radius: 14px;
+      }
+
+      .msg.user .msg-bubble {
+        border-radius: 14px;
+        border-bottom-right-radius: 4px;
+      }
+
+      .msg.bot .msg-bubble {
+        border-radius: 14px;
+        border-bottom-left-radius: 4px;
+      }
+
+      .msg-time {
+        font-size: 10px;
+        margin-top: 3px;
+      }
+
+      /* Welcome */
+      .welcome {
+        padding: 24px 16px;
+      }
+
+      .welcome .avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        font-size: 32px;
+        margin-bottom: 16px;
+      }
+
+      .welcome h3 {
+        font-size: 20px;
+      }
+
+      .welcome p {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .quick-actions {
+        gap: 6px;
+      }
+
+      .quick-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+
+      /* Input area */
+      .input-area {
+        padding: 10px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+      }
+
+      .input-wrapper {
+        gap: 8px;
+      }
+
+      .input-box textarea {
+        padding: 10px 14px;
+        font-size: 16px;
+        /* Prevent iOS zoom on focus */
+        border-radius: 14px;
+        max-height: 100px;
+        min-height: 42px;
+      }
+
+      .btn-send {
+        width: 42px;
+        height: 42px;
+      }
+
+      .input-hint {
+        font-size: 10px;
+        margin-top: 6px;
+      }
+    }
+
+    /* Very small screens (< 360px) */
+    @media (max-width: 360px) {
+      .msg-content {
+        max-width: 90%;
+      }
+
+      .msg-bubble {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+
+      .quick-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+    }
+
+    /* ── Scrollbar ──────────────────────── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #d1d1d6;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a6;
+    }
+  /* Login Overlay */
+  .login-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .login-overlay.hidden { display: none; }
+
+  .login-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    width: 90%;
+    max-width: 360px;
+  }
+
+  .login-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 20px;
+  }
+
+  .login-card h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .login-card > p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .login-form input {
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+  }
+
+  .login-form input:focus {
+    border-color: var(--accent);
+  }
+
+  .login-form button {
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .login-form button:hover { opacity: 0.9; }
+  .login-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .login-error {
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 4px;
+    min-height: 20px;
+  }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-avatar">🎓</div>
+      <h2>雪峰 Agent</h2>
+      <p>AI 高考志愿顾问</p>
+      <div class="login-form">
+        <input type="text" id="loginName" placeholder="请输入你的姓名" maxlength="20" autocomplete="off">
+        <button onclick="doLogin()">开始咨询</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1><span class="icon">🎓</span> 雪峰 Agent</h1>
+        <p>AI 高考志愿顾问</p>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>信息采集进度</h3>
+        <div id="slotsList">
+          <!-- JS 填充 -->
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-reset" onclick="resetChat()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 1 3 7" />
+            <polyline points="3 22 3 16 9 16" />
+          </svg>
+          重新开始对话
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat -->
+    <main class="chat-area">
+      <div class="chat-header">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="header-left">
+          <h2>高考志愿咨询</h2>
+          <div class="status-inline" id="statusInline">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">就绪</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);display:none;" id="modelInfo"></div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="welcome" id="welcome">
+          <div class="avatar">🎓</div>
+          <h3>你好，我是雪峰 Agent</h3>
+          <p>一个干了十几年高考志愿规划的老炮。直接说你的情况，我帮你分析。别客气，有啥问啥。</p>
+          <div class="quick-actions">
+            <button class="quick-btn" onclick="sendQuick('湖北物理类580分，想学计算机')">湖北 580分 物理</button>
+            <button class="quick-btn" onclick="sendQuick('山东考生，620分，想学医')">山东 620分 学医</button>
+            <button class="quick-btn" onclick="sendQuick('河南文科550分，家里是普通家庭，想考公')">河南 550分 考公</button>
+            <button class="quick-btn" onclick="sendQuick('广东600分，家里做电力相关工作')">广东 600分 电力</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-wrapper">
+          <div class="input-box">
+            <textarea id="userInput" rows="1" placeholder="描述你的情况，比如：我是湖北考生，物理类580分..." onkeydown="handleKey(event)"
+              oninput="autoResize(this)"></textarea>
+          </div>
+          <button class="btn-send" id="btnSend" onclick="sendMessage()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">按 Enter 发送，Shift+Enter 换行</div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ── Config ─────────────────────────────
+    // 部署时修改这里：填入后端 API 地址（ngrok 地址或服务器地址）
+    // 本地开发留空即可，会自动用相对路径
+    const API_BASE = 'https://yiddish-humvee-tightrope.ngrok-free.dev';
+
+    // ── State ──────────────────────────────
+    let sessionId = localStorage.getItem('sessionId') || generateId();
+    localStorage.setItem('sessionId', sessionId);
+    let userName = localStorage.getItem('userName') || '';
+    let isStreaming = false;
+    let slots = {};
+
+    // ── Login ───────────────────────────────
+    function checkLogin() {
+      if (userName) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('userInput').focus();
+      }
+    }
+
+    function doLogin() {
+      const input = document.getElementById('loginName');
+      const name = input.value.trim();
+      if (!name) {
+        input.style.borderColor = 'var(--red)';
+        return;
+      }
+      userName = name;
+      localStorage.setItem('userName', name);
+      document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('userInput').focus();
+    }
+
+    // Enter key on login input
+    document.getElementById('loginName').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    // Check on load
+    checkLogin();
+
+    // ── Slot definitions ───────────────────
+    const SLOT_DEFS = {
+      province: { label: '省份', icon: '📍' },
+      score_rank: { label: '分数/位次', icon: '📊' },
+      subject: { label: '选科', icon: '📚' },
+      interest: { label: '专业兴趣', icon: '💡' },
+      region: { label: '地域偏好', icon: '🗺️' },
+      family: { label: '家庭资源', icon: '🏠' },
+      goal: { label: '核心诉求', icon: '🎯' },
+    };
+
+    function generateId() {
+      return 's_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // ── Init ───────────────────────────────
+    const ngrokHeaders = API_BASE.includes('ngrok') ? { 'ngrok-skip-browser-warning': 'true' } : {};
+    fetch(API_BASE + '/api/health', { headers: ngrokHeaders }).then(r => r.json()).then(d => {
+      document.getElementById('modelInfo').textContent = `模型: ${d.model}`;
+      document.getElementById('statusText').textContent = `就绪 · ${d.model}`;
+    }).catch(() => {
+      document.getElementById('statusText').textContent = '连接失败';
+      document.getElementById('statusDot').style.background = 'var(--red)';
+    });
+
+    // Init slots display
+    for (const [key, def] of Object.entries(SLOT_DEFS)) {
+      slots[key] = { filled: false, value: '' };
+    }
+    renderSlots();
+
+    // ── Slots rendering ────────────────────
+    function renderSlots() {
+      const container = document.getElementById('slotsList');
+      container.innerHTML = '';
+      for (const [key, def] of Object.entries(SLOT_DEFS)) {
+        const s = slots[key] || { filled: false, value: '' };
+        const el = document.createElement('div');
+        el.className = 'slot-item';
+        el.innerHTML = `
+        <span class="slot-dot ${s.filled ? 'filled' : ''}"></span>
+        <span class="slot-label">${def.label}</span>
+        <span class="slot-value">${s.filled ? s.value : '—'}</span>
+      `;
+        container.appendChild(el);
+      }
+    }
+
+    // ── Sidebar toggle (mobile) ────────────
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    // ── Auto resize textarea ───────────────
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    // ── Time formatting ────────────────────
+    function timeStr() {
+      const d = new Date();
+      return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+    }
+
+    // ── Add message to chat ────────────────
+    function addMessage(role, text) {
+      const welcome = document.getElementById('welcome');
+      if (welcome) welcome.remove();
+
+      const container = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+
+      const avatar = role === 'bot'
+        ? '<div class="msg-avatar">🎓</div>'
+        : '<div class="msg-avatar">我</div>';
+
+      div.innerHTML = `
+      ${avatar}
+      <div class="msg-content">
+        <div class="msg-bubble">${escapeHtml(text)}</div>
+        <div class="msg-time">${timeStr()}</div>
+      </div>
+    `;
+
+      container.appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    // ── Add bot message (streaming) ────────
+    function addBotMessage() {
+      const welcome = document.getElementById('welcome');
+      if (welcome) welcome.remove();
+
+      const container = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'msg bot';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble thinking';
+      bubble.innerHTML = '正在思考<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'msg-time';
+      timeEl.textContent = timeStr();
+
+      const content = document.createElement('div');
+      content.className = 'msg-content';
+      content.appendChild(bubble);
+      content.appendChild(timeEl);
+
+      div.innerHTML = '<div class="msg-avatar">🎓</div>';
+      div.appendChild(content);
+
+      container.appendChild(div);
+      scrollToBottom();
+      return bubble;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function scrollToBottom() {
+      const m = document.getElementById('messages');
+      m.scrollTop = m.scrollHeight;
+    }
+
+    // ── Send message ───────────────────────
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text || isStreaming) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+      addMessage('user', text);
+
+      isStreaming = true;
+      document.getElementById('btnSend').disabled = true;
+      document.getElementById('statusText').textContent = '思考中...';
+
+      const bubble = addBotMessage();
+      let fullText = '';
+
+      try {
+        const resp = await fetch(API_BASE + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...ngrokHeaders },
+          body: JSON.stringify({ message: text, session_id: sessionId, user_name: userName }),
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6);
+            try {
+              const data = JSON.parse(jsonStr);
+              if (data.type === 'init') {
+                sessionId = data.session_id;
+                localStorage.setItem('sessionId', sessionId);
+                if (data.slots) {
+                  slots = data.slots;
+                  renderSlots();
+                }
+              } else if (data.type === 'token') {
+                fullText += data.content;
+                bubble.textContent = fullText;
+                scrollToBottom();
+              } else if (data.type === 'done') {
+                if (data.slots) {
+                  slots = data.slots;
+                  renderSlots();
+                }
+              }
+            } catch { }
+          }
+        }
+
+        // Clean up formatting
+        if (fullText) {
+          bubble.textContent = fullText;
+        }
+
+      } catch (err) {
+        bubble.textContent = '连接出错：' + err.message;
+      }
+
+      isStreaming = false;
+      document.getElementById('btnSend').disabled = false;
+      document.getElementById('statusText').textContent = '就绪';
+      document.getElementById('userInput').focus();
+      scrollToBottom();
+    }
+
+    // ── Quick action ───────────────────────
+    function sendQuick(text) {
+      document.getElementById('userInput').value = text;
+      sendMessage();
+    }
+
+    // ── Reset chat ─────────────────────────
+    async function resetChat() {
+      if (!confirm('确定要重新开始对话吗？')) return;
+
+      try {
+        await fetch(API_BASE + '/api/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...ngrokHeaders },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+      } catch { }
+
+      // Reset UI
+      for (const key of Object.keys(slots)) {
+        slots[key] = { filled: false, value: '' };
+      }
+      renderSlots();
+
+      const container = document.getElementById('messages');
+      container.innerHTML = `
+      <div class="welcome" id="welcome">
+        <div class="avatar">🎓</div>
+        <h3>你好，我是雪峰 Agent</h3>
+        <p>一个干了十几年高考志愿规划的老炮。直接说你的情况，我帮你分析。别客气，有啥问啥。</p>
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="sendQuick('湖北物理类580分，想学计算机')">湖北 580分 物理</button>
+          <button class="quick-btn" onclick="sendQuick('山东考生，620分，想学医')">山东 620分 学医</button>
+          <button class="quick-btn" onclick="sendQuick('河南文科550分，家里是普通家庭，想考公')">河南 550分 考公</button>
+          <button class="quick-btn" onclick="sendQuick('广东600分，家里做电力相关工作')">广东 600分 电力</button>
+        </div>
+      </div>
+    `;
+    }
+
+    // ── Keyboard ───────────────────────────
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    // Focus input on load
+    document.getElementById('userInput').focus();
+  </script>
+
+</body>
+
+</html>
