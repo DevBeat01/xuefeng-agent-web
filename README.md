@@ -15,7 +15,7 @@
 在浏览器中访问：
 
 ```Plain Text
-https://devbeat01.github.io/xf-agent-web/
+https://devbeat01.github.io/xuefeng-agent-web/
 ```
 
 > 支持手机和电脑访问，推荐使用 Chrome 或 Edge 浏览器。
